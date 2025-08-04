@@ -18,7 +18,7 @@ contract TokenBank{
         token = IERC20(_tokenAddress);
     }
 
-    function deposit(uint256 amount) external {
+    function deposit(uint256 amount) external{
         //验证用户身上的代币数量
         require(amount >0, "Deposit amount must be greater than 0");
         require(token.balanceOf(msg.sender) >= amount, "Insufficient token balance");
@@ -33,9 +33,12 @@ contract TokenBank{
         require(amount >0, "withdraw amount must be greater than 0");
         require(balances[msg.sender] >= amount, "Insufficient balance");
         //进行取款,将代币从当前合约转给用户
-        bool success = token.transfer(msg.sender, amount);
-        require(success, "Transfer failed");
+        token.transfer(msg.sender, amount);
         balances[msg.sender] -= amount;
         emit Withdraw(msg.sender,amount);
+    }
+
+    function balanceOf(address user) external view returns (uint256) {
+        return balances[user];
     }
 }

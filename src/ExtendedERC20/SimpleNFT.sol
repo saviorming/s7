@@ -12,7 +12,7 @@ contract SimpleNFT is ERC721, Ownable {
         uint256 tokenId = _tokenIdCounter;
         _tokenIdCounter++;
         _mint(to, tokenId);
-        return tokenId;
+        return tokenId; 
     }
 
     function batchMint(address to, uint256 amount) external onlyOwner {

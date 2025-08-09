@@ -12,3 +12,21 @@ docs/
 
 # Dotenv file
 .env
+
+# Dependencies (Foundry manages these via .gitmodules)
+lib/
+
+# Node modules (if using frontend)
+node_modules/
+
+# IDE files
+.vscode/settings.json
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp

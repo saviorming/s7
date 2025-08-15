@@ -1,0 +1,37 @@
+{
+    "folders": [
+        {
+            "path": "."
+        }
+    ],
+    "settings": {
+        "solidity.remappings": [
+            "@openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/",
+            "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/",
+            "@openzeppelin/=lib/openzeppelin-contracts/",
+            "forge-std/=lib/forge-std/src/"
+        ],
+        "solidity.packageDefaultDependenciesDirectory": "lib",
+        "solidity.compileUsingRemoteVersion": "0.8.25",
+        "solidity.defaultCompiler": "remote",
+        "solidity.monoRepoSupport": false,
+        "solidity.enabledAsYouTypeCompilationErrorCheck": false,
+        "solidity.validationDelay": 2000,
+        "solidity.includePath": [
+            "lib/openzeppelin-contracts-upgradeable/contracts",
+            "lib/openzeppelin-contracts/contracts", 
+            "lib/forge-std/src",
+            "src"
+        ],
+        "files.associations": {
+            "*.sol": "solidity"
+        },
+        "editor.gotoLocation.multipleDefinitions": "goto",
+        "editor.gotoLocation.multipleDeclarations": "goto"
+    },
+    "extensions": {
+        "recommendations": [
+            "juanblanco.solidity"
+        ]
+    }
+}

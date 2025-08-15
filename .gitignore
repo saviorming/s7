@@ -20,6 +20,7 @@ lib/
 node_modules/
 
 # IDE files
+.vscode/
 .vscode/settings.json
 .idea/
 

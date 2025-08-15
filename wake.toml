@@ -1,0 +1,27 @@
+[compiler.solc]
+target_version = "0.8.25"
+include_paths = ["src", "lib", "test", "script"]
+exclude_paths = ["out", "cache", "node_modules", "broadcast"]
+
+remappings = [
+    "@openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/",
+    "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/",
+    "@openzeppelin/=lib/openzeppelin-contracts/",
+    "forge-std/=lib/forge-std/src/",
+    "erc4626-tests/=lib/openzeppelin-contracts-upgradeable/lib/erc4626-tests/",
+    "halmos-cheatcodes/=lib/openzeppelin-contracts-upgradeable/lib/halmos-cheatcodes/src/",
+    "openzeppelin-contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/",
+    "openzeppelin-contracts/=lib/openzeppelin-contracts/",
+    "openzeppelin-foundry-upgrades/=lib/openzeppelin-foundry-upgrades/src/"
+]
+
+[compiler.solc.optimizer]
+enabled = true
+runs = 200
+
+[detectors]
+exclude = []
+
+[lsp]
+compilation_errors_as_warnings = false
+detectors_as_warnings = true

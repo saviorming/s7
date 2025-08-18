@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "forge-std/console.sol";
 
 /**
  * @title CallOptionToken
@@ -78,24 +79,38 @@ contract CallOptionToken is ERC20, Ownable, ReentrancyGuard {
      * @notice 项目方存入ETH，按1:1比例发行期权Token
      */
     function issueOptions() external payable onlyOwner nonReentrant {
+        console.log("=== issueOptions called ===");
+        console.log("msg.sender:", msg.sender);
+        console.log("msg.value:", msg.value);
+        console.log("block.timestamp:", block.timestamp);
+        console.log("expirationTime:", expirationTime);
+        
         if (block.timestamp >= expirationTime) {
+            console.log("ERROR: Option expired");
             revert OptionExpired();
         }
         if (msg.value == 0) {
+            console.log("ERROR: Insufficient ETH deposit");
             revert InsufficientEthDeposit();
         }
         
         // 按1:1比例发行期权Token (1 ETH = 1e18 期权Token)
         uint256 optionTokensToIssue = msg.value;
+        console.log("optionTokensToIssue:", optionTokensToIssue);
         
         // 更新状态
         totalEthDeposited += msg.value;
         totalOptionsIssued += optionTokensToIssue;
+        console.log("totalEthDeposited after:", totalEthDeposited);
+        console.log("totalOptionsIssued after:", totalOptionsIssued);
         
         // 铸造期权Token给项目方
         _mint(owner(), optionTokensToIssue);
+        console.log("Minted tokens to owner:", owner());
+        console.log("Owner balance after mint:", balanceOf(owner()));
         
         emit OptionsIssued(msg.sender, msg.value, optionTokensToIssue);
+        console.log("=== issueOptions completed ===");
     }
     
     /**
@@ -104,46 +119,75 @@ contract CallOptionToken is ERC20, Ownable, ReentrancyGuard {
      * @notice 用户在到期日当天可以按行权价格用USDT兑换ETH
      */
     function exerciseOptions(uint256 _optionAmount) external nonReentrant {
+        console.log("=== exerciseOptions called ===");
+        console.log("msg.sender:", msg.sender);
+        console.log("_optionAmount:", _optionAmount);
+        console.log("block.timestamp:", block.timestamp);
+        console.log("expirationTime:", expirationTime);
+        console.log("expirationTime + 1 days:", expirationTime + 1 days);
+        console.log("user balance:", balanceOf(msg.sender));
+        
         if (block.timestamp < expirationTime) {
+            console.log("ERROR: Exercise not allowed - not yet expired");
             revert ExerciseNotAllowed();
         }
         if (block.timestamp > expirationTime + 1 days) {
+            console.log("ERROR: Option expired - exercise window closed");
             revert OptionExpired();
         }
         if (balanceOf(msg.sender) < _optionAmount) {
+            console.log("ERROR: Insufficient option tokens");
             revert InsufficientOptionTokens();
         }
         
         // 计算需要支付的USDT (期权Token数量 * 行权价格 / 1e18)
         // _optionAmount是期权Token数量(wei), strikePrice是行权价格(USDT 6位小数)
         uint256 usdtRequired = (_optionAmount * strikePrice) / 1e18;
+        console.log("strikePrice:", strikePrice);
+        console.log("usdtRequired:", usdtRequired);
         
         // 检查USDT授权额度
-        if (usdt.allowance(msg.sender, address(this)) < usdtRequired) {
+        uint256 allowance = usdt.allowance(msg.sender, address(this));
+        console.log("USDT allowance:", allowance);
+        if (allowance < usdtRequired) {
+            console.log("ERROR: Insufficient USDT allowance");
             revert InsufficientUsdtAllowance();
         }
         
         // 从用户转入USDT
+        console.log("Transferring USDT from user...");
         if (!usdt.transferFrom(msg.sender, address(this), usdtRequired)) {
+            console.log("ERROR: USDT transfer failed");
             revert TransferFailed();
         }
+        console.log("USDT transfer successful");
         
         // 销毁期权Token
+        console.log("Burning option tokens...");
         _burn(msg.sender, _optionAmount);
+        console.log("User balance after burn:", balanceOf(msg.sender));
         
         // 转移标的ETH给用户（期权Token对应的ETH数量）
         uint256 ethToTransfer = _optionAmount; // 期权Token数量就是对应的ETH数量(wei)
+        console.log("Contract ETH balance:", address(this).balance);
+        console.log("ETH to transfer (before adjustment):", ethToTransfer);
         if (address(this).balance < ethToTransfer) {
             ethToTransfer = address(this).balance;
+            console.log("Adjusted ETH to transfer:", ethToTransfer);
         }
         
         // 转移标的ETH给用户
+        console.log("Transferring ETH to user...");
         (bool transferSuccess, ) = payable(msg.sender).call{value: ethToTransfer}("");
         if (!transferSuccess) {
+            console.log("ERROR: ETH transfer failed");
             revert TransferFailed();
         }
+        console.log("ETH transfer successful");
+        console.log("Contract ETH balance after transfer:", address(this).balance);
         
         emit OptionsExercised(msg.sender, _optionAmount, ethToTransfer);
+        console.log("=== exerciseOptions completed ===");
     }
     
     /**

@@ -2,6 +2,7 @@
 pragma solidity ^0.8.19;
 
 import "forge-std/Test.sol";
+import "forge-std/console.sol";
 import "../src/Defi/options/CallOptionToken.sol";
 import "../src/Defi/options/MockUSDT.sol";
 
@@ -502,6 +503,123 @@ contract CallOptionTokenTest is Test {
         assertTrue(optionToken.isExpired());
         assertEq(optionToken.balanceOf(user1), 0); // 已行权
         assertEq(address(optionToken).balance, 0); // 合约余额为0
+    }
+    
+    /**
+      * @dev 测试完整的发行和行权过程（带详细日志）
+      */
+     function testDetailedIssuanceAndExerciseProcess() public {
+         console.log(unicode"=== 开始期权发行和行权演示 ===");
+         
+         // 记录初始状态
+         console.log(unicode"初始状态:");
+         console.log(unicode"- 合约ETH余额:", address(optionToken).balance);
+         console.log(unicode"- 期权总供应量:", optionToken.totalSupply());
+         console.log(unicode"- 行权价格(USDT):", STRIKE_PRICE / 1e12); // 转换为USDT单位显示
+         console.log(unicode"- 到期时间:", expirationTime);
+         console.log(unicode"- 当前时间:", block.timestamp);
+         
+         // 1. 发行期权
+         console.log(unicode"\n=== 步骤1: 发行期权 ===");
+         uint256 issueAmount = 5 ether;
+         console.log(unicode"发行ETH数量:", issueAmount);
+         
+         optionToken.issueOptions{value: issueAmount}();
+         
+         console.log(unicode"发行后状态:");
+         console.log(unicode"- 合约ETH余额:", address(optionToken).balance);
+         console.log(unicode"- 期权总供应量:", optionToken.totalSupply());
+         console.log(unicode"- 所有者期权余额:", optionToken.balanceOf(owner));
+         console.log(unicode"- 总ETH存款:", optionToken.totalEthDeposited());
+         console.log(unicode"- 总期权发行量:", optionToken.totalOptionsIssued());
+         
+         // 2. 分发期权给用户
+         console.log(unicode"\n=== 步骤2: 分发期权给用户 ===");
+         uint256 user1Amount = 2 ether;
+         uint256 user2Amount = 1.5 ether;
+         
+         optionToken.transfer(user1, user1Amount);
+         optionToken.transfer(user2, user2Amount);
+         
+         console.log(unicode"分发后余额:");
+         console.log(unicode"- 用户1期权余额:", optionToken.balanceOf(user1));
+         console.log(unicode"- 用户2期权余额:", optionToken.balanceOf(user2));
+         console.log(unicode"- 所有者剩余期权:", optionToken.balanceOf(owner));
+         
+         // 3. 等待到期
+         console.log(unicode"\n=== 步骤3: 等待到期 ===");
+         console.log(unicode"当前可以行权吗?", optionToken.canExercise());
+         
+         vm.warp(expirationTime);
+         console.log(unicode"跳转到到期时间:", block.timestamp);
+         console.log(unicode"现在可以行权吗?", optionToken.canExercise());
+        
+        // 4. 用户1行权
+        console.log(unicode"\n=== 步骤4: 用户1行权 ===");
+        uint256 exerciseAmount = user1Amount;
+        uint256 usdtRequired = (exerciseAmount * STRIKE_PRICE) / 1e18;
+        
+        console.log(unicode"行权详情:");
+        console.log(unicode"- 行权期权数量:", exerciseAmount);
+        console.log(unicode"- 需要支付USDT:", usdtRequired / 1e6); // 转换为USDT单位显示
+        console.log(unicode"- 用户1行权前ETH余额:", user1.balance);
+        console.log(unicode"- 用户1行权前USDT余额:", usdt.balanceOf(user1) / 1e6);
+        
+        // 授权USDT
+        vm.prank(user1);
+        usdt.approve(address(optionToken), usdtRequired);
+        console.log(unicode"- USDT授权完成");
+        
+        // 执行行权
+        vm.prank(user1);
+        optionToken.exerciseOptions(exerciseAmount);
+        
+        console.log(unicode"行权后状态:");
+        console.log(unicode"- 用户1期权余额:", optionToken.balanceOf(user1));
+        console.log(unicode"- 用户1ETH余额:", user1.balance);
+        console.log(unicode"- 用户1USDT余额:", usdt.balanceOf(user1) / 1e6);
+        console.log(unicode"- 合约ETH余额:", address(optionToken).balance);
+        console.log(unicode"- 期权总供应量:", optionToken.totalSupply());
+        console.log(unicode"- 合约USDT余额:", usdt.balanceOf(address(optionToken)) / 1e6);
+        
+        // 5. 检查内在价值
+        console.log(unicode"\n=== 步骤5: 检查内在价值 ===");
+        uint256 currentPrice = 0.12 ether; // 假设当前ETH价格
+        uint256 intrinsic = optionToken.intrinsicValue(currentPrice);
+        console.log(unicode"当前ETH价格:", currentPrice / 1e12); // 转换显示
+        console.log(unicode"期权内在价值:", intrinsic / 1e12);
+        
+        // 6. 等待行权期结束并销毁剩余期权
+        console.log(unicode"\n=== 步骤6: 销毁过期期权 ===");
+        vm.warp(expirationTime + 2 days);
+        console.log(unicode"跳转到销毁时间:", block.timestamp);
+        console.log(unicode"现在可以行权吗?", optionToken.canExercise());
+        console.log(unicode"期权已过期吗?", optionToken.isExpired());
+        
+        uint256 ownerBalanceBefore = owner.balance;
+        uint256 remainingTokens = optionToken.totalSupply();
+        uint256 contractEthBalance = address(optionToken).balance;
+        
+        console.log(unicode"销毁前状态:");
+        console.log(unicode"- 剩余期权数量:", remainingTokens);
+        console.log(unicode"- 合约ETH余额:", contractEthBalance);
+        console.log(unicode"- 所有者ETH余额:", ownerBalanceBefore);
+        
+        optionToken.destroyExpiredOptions();
+        
+        console.log(unicode"销毁后状态:");
+        console.log(unicode"- 所有者ETH余额:", owner.balance);
+        console.log(unicode"- 合约ETH余额:", address(optionToken).balance);
+        console.log(unicode"- 期权已过期:", optionToken.isExpired());
+        
+        // 7. 最终验证
+        console.log(unicode"\n=== 最终验证 ===");
+        assertTrue(optionToken.isExpired());
+        assertEq(optionToken.balanceOf(user1), 0);
+        assertEq(address(optionToken).balance, 0);
+        assertEq(owner.balance, ownerBalanceBefore + contractEthBalance);
+        
+        console.log(unicode"=== 期权生命周期演示完成 ===");
     }
     
     /**
